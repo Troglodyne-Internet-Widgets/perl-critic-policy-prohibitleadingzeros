@@ -3,7 +3,8 @@ package Perl::Critic::Policy::ProhibitLeadingZeros;
 # ABSTRACT: A leading zero is octal, which is right for a file mode and a bug anywhere else.
 
 use strict;
-use warnings;
+use warnings FATAL => 'all';
+no autovivification;
 
 use 5.014;
 
@@ -182,7 +183,7 @@ Readonly::Array my @DEFAULT_ALLOW => qw{ chmod dbmopen mkdir mkpath make_path sy
 
 # Zeros, and then a significant digit: 0600, 0_644, -007.  Not 0, 00, 0.5, 0x1f
 # or 0b101, none of which reads as a decimal that is not one.
-Readonly::Scalar my $LEADING_ZERO_RX => qr/\A [+-]? (?: 0+ _* )+ [1-9]/xms;
+Readonly::Scalar my $LEADING_ZERO_RX => qr/\A [+-]? (?: 0+ _* )+ [1-9]/xs;
 
 # Operators that sit between arguments rather than inside one.  The
 # low-precedence ones end a list operator's arguments: mkdir $d, 0700 or die.
@@ -274,21 +275,25 @@ sub violates {
 sub _enclosing_call {
     my ($node) = @_;
 
-    return if !_is_whole_argument($node);
+    while ($node) {
+        return if !_is_whole_argument($node);
 
-    my $list_operator = _list_operator_before($node);
-    return $list_operator if $list_operator;
+        my $list_operator = _list_operator_before($node);
+        return $list_operator if $list_operator;
 
-    my $structure = $node->parent()->parent();
-    return if !$structure;
+        my $structure = $node->parent()->parent();
+        return if !$structure;
 
-    if ( $structure->isa('PPI::Structure::List') ) {
-        my $before = $structure->sprevious_sibling();
-        return $before if $before && $before->isa('PPI::Token::Word');
-        return _enclosing_call($structure);
+        if ( $structure->isa('PPI::Structure::List') ) {
+            my $before = $structure->sprevious_sibling();
+            return $before if $before && $before->isa('PPI::Token::Word');
+        }
+        elsif ( !$structure->isa('PPI::Structure::Constructor') ) {
+            return;
+        }
+
+        $node = $structure;
     }
-
-    return _enclosing_call($structure) if $structure->isa('PPI::Structure::Constructor');
     return;
 }
 
@@ -337,7 +342,7 @@ sub _allowed {
         return $self->{_allow}{$name};
     }
 
-    my $short = $name =~ s/\A.*:://r;
+    my $short = $name =~ s/\A.*:://xsr;
     return $self->{_allow}{$name} || $self->{_allow}{$short};
 }
 

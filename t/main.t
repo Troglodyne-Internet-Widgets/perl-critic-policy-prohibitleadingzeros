@@ -1,5 +1,7 @@
+package main;
+
 use strict;
-use warnings;
+use warnings FATAL => 'all';
 
 use re '/aa';
 
@@ -7,7 +9,7 @@ use 5.014;
 
 =head1 NAME
 
-t/main.t - which leading-zero literals the policy reports, and which it lets
+main - which leading-zero literals the policy reports, and which it lets
 through as file modes
 
 =head1 DESCRIPTION
@@ -23,7 +25,6 @@ use Test::More;
 use Test::Warnings qw{warnings};
 
 use Perl::Critic;
-use Perl::Critic::Policy::ProhibitLeadingZeros;
 
 # -profile => q{} because Perl::Critic otherwise walks up from cwd looking for
 # a .perlcriticrc, finds this dist's own, and runs every policy in it against
@@ -148,3 +149,5 @@ foreach my $source ( q{sub { foo(0600) }}, q{ok( exception { write_pem( $p, 1, 0
 }
 
 done_testing();
+
+1;
